@@ -40,7 +40,6 @@ do
 
   if test "${arr[2]}" = "false"
   then 
-    echo "PR is not mergeable with origin master, skipping..."
     unmergeable_with_master_prs+=("${arr[0]}")
   else
     if test "$(gh api -H "Accept: application/vnd.github+json" "repos/$OWNER/$REPO/commits/${arr[1]}/check-runs" --cache 1h \
@@ -55,7 +54,6 @@ do
       git branch --quiet --delete --force  "TEMP_BRANCH_NAME"
       git prune
     else
-      echo "PR is not passing checks, skipping..."
       check_fail_prs+=("${arr[0]}")
     fi
   fi
