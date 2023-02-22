@@ -2,7 +2,25 @@
 _owner="$1"
 _repo="$2"
 
-echo "Retrieving PRs from ${_owner}/${_repo}..."
+if test "$_owner" = "" && test "$_repo" = ""
+then
+  url=$(git remote get-url origin)
+  upstream=$(rg --only-matching --pcre2 '(?<=github\.com\/).*' <<< "$url")
+  if test $upstream = ""
+  then
+    echo "ERROR: Failed to find upstream GitHub URL from a remote named 'origin'
+Retry by explicitly passing the owner and repo name as program arguments:
+
+  \$ git-conflict <owner> <repo_name>
+"
+  else
+    read -a temp_arr <<< $(sed 's/\// /' <<< "$upstream")
+    _owner="${temp_arr[0]}"
+    _repo="${temp_arr[1]}"
+  fi
+fi
+
+echo "Retrieving PRs from $_owner/$_repo..."
 
 _response=$(gh api --include -H "Accept: application/vnd.github+json" \
   "repos/$_owner/$_repo/pulls?per_page=100&state=open" --cache 1h)
@@ -10,7 +28,7 @@ _last_page_nr=$(rg --only-matching --pcre2 '\d*(?=>; rel="last")' <<< "$_respons
 _pr_numbers="$(jq '.[] | select((.draft == false)) | .number' <<< \
   "$(tail --lines=1 <<< "$_response")")"
    
-if test "$_last_page_nr" -gt "1"
+if test "$_last_page_nr" 
 then
   for _page in $(seq 2 "$_last_page_nr")
   do
@@ -19,6 +37,12 @@ then
     _pr_numbers="$(jq '.[] | select((.draft == false)) | .number' <<< \
       "$(tail --lines=1 <<< "$_response")")$(printf "\n%s" "$_pr_numbers")"
   done
+fi
+
+if test -z "$_pr_numbers"
+then
+  echo "No open PRs found in $_owner/$_repo! Aborting..."
+  exit
 fi
 
 _pr_count="$(wc -l <<< "$_pr_numbers")"
@@ -39,7 +63,7 @@ do
   # [pr_number, head_sha, mergeable_with_master]
   read -a arr <<< "$data"
 
-  echo "== SUMMARY ($_total_prs_checked/$_pr_count) ==
+  echo "=== SUMMARY for $_owner/$_repo, ($_total_prs_checked/$_pr_count) PRs checked ===
 
 Conflicting PRs (${#_conflicting_prs[*]}): 
 ${_conflicting_prs[@]}
@@ -47,7 +71,7 @@ ${_conflicting_prs[@]}
 Skipped because of failing CI checks (${#_check_fail_prs[*]}):
 ${_check_fail_prs[@]}
 
-Skipped for being unmergeable with master (${#_unmergeable_with_master_prs[*]}): 
+Skipped for not being mergeable with origin HEAD (${#_unmergeable_with_master_prs[*]}): 
 ${_unmergeable_with_master_prs[@]}
 
 Checking if '$_local_branch' conflicts with PR #${arr[0]}...
