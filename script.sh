@@ -2,7 +2,7 @@
 _owner="$1"
 _repo="$2"
 
-echo "Retrieving forks from ${_owner}/${_repo}..."
+echo "Retrieving PRs from ${_owner}/${_repo}..."
 
 _response=$(gh api --include -H "Accept: application/vnd.github+json" \
   "repos/$_owner/$_repo/pulls?per_page=100&state=open&direction=asc" --cache 1h)
@@ -21,12 +21,14 @@ then
   done
 fi
 
-echo "Found $(wc -l <<< "$_pr_numbers") open PRs..."
+_pr_count="$(wc -l <<< "$_pr_numbers")"
+echo "Found $_pr_count open PRs..."
 
 _total_prs_checked=0
 _conflicting_prs=()
 _unmergeable_with_master_prs=()
 _check_fail_prs=()
+_local_branch=$(git rev-parse --abbrev-ref HEAD)
 
 echo "$_pr_numbers" |
 xargs -I{} gh api -H "Accept: application/vnd.github+json" \
@@ -34,8 +36,16 @@ xargs -I{} gh api -H "Accept: application/vnd.github+json" \
    --jq '[.number, .head.sha, .mergeable] | join(" ")' |
 while read -r data
 do
+  # [pr_number, head_sha, mergeable_with_master]
   read -a arr <<< "$data"
-  echo "Checking conflict with PR #${arr[0]}..."
+
+  echo "== SUMMARY =="
+  echo "Number of PRs checked $_total_prs_checked/$_pr_count"
+  echo "Conflicting PRs (${#_conflicting_prs[*]}) :" "${_conflicting_prs[@]}"
+  echo "Checks faiure PRs (${#_check_fail_prs[*]}) :" "${_check_fail_prs[@]}"
+  echo "Unmergeable with master PRs (${#_unmergeable_with_master_prs[*]}) :" "${_unmergeable_with_master_prs[@]}"
+  echo ""
+  echo "Checking whether $_local_branch conflicts with PR #${arr[0]}..."
 
   if test "${arr[2]}" = "false"
   then 
@@ -56,13 +66,7 @@ do
       _check_fail_prs+=("#${arr[0]}")
     fi
   fi
-  
-  _total_prs_checked=$((_total_prs_checked + 1))
 
-  echo "== SUMMARY =="
-  echo "Number of PRs checked $_total_prs_checked"
-  echo "Conflicting PRs (${#_conflicting_prs[*]}) :" "${_conflicting_prs[@]}"
-  echo "Checks faiure PRs (${#_check_fail_prs[*]}) :" "${_check_fail_prs[@]}"
-  echo "Unmergeable with master PRs (${#_unmergeable_with_master_prs[*]}) :" "${_unmergeable_with_master_prs[@]}"
-  echo ""
+  _total_prs_checked=$((_total_prs_checked + 1))
+  clear -x
 done
