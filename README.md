@@ -30,7 +30,7 @@ Checking if 'unify-config' conflicts with PR #5645...
 To try it out, run:
 ```bash
   # in repo directory
-  sh script.sh <repo-owner> <repo-name>
+  sh git-conflict.sh <repo-owner> <repo-name>
 ```
 
 Special dependencies:
