@@ -1,37 +1,36 @@
 #!/bin/bash
-OWNER="$1"
-REPO="$2"
+_owner="$1"
+_repo="$2"
 
-export total_prs_checked=0
-export conflicting_prs=()
-export unmergeable_with_master_prs=()
-export check_fail_prs=()
+echo "Retrieving forks from ${_owner}/${_repo}..."
 
-echo "Retrieving forks from ${OWNER}/${REPO}..."
-
-PR_NUMBERS=""
-RESPONSE=$(gh api --include -H "Accept: application/vnd.github+json" \
-  "repos/$OWNER/$REPO/pulls?per_page=100&state=open&direction=asc" --cache 1h)
-PR_NUMBERS="$(jq '.[] | select((.draft == false)) | .number' <<< \
-  "$(tail --lines=1 <<< "$RESPONSE")")$(printf "\n%s" "$PR_NUMBERS")"
-LAST_PAGE_NR=$(rg --only-matching --pcre2 '\d*(?=>; rel="last")' <<< "$RESPONSE")
+_response=$(gh api --include -H "Accept: application/vnd.github+json" \
+  "repos/$_owner/$_repo/pulls?per_page=100&state=open&direction=asc" --cache 1h)
+_last_page_nr=$(rg --only-matching --pcre2 '\d*(?=>; rel="last")' <<< "$_response")
+_pr_numbers="$(jq '.[] | select((.draft == false)) | .number' <<< \
+  "$(tail --lines=1 <<< "$_response")")"
    
-if test "$LAST_PAGE_NR" -gt "1"
+if test "$_last_page_nr" -gt "1"
 then
-  for PAGE in $(seq 2 "$LAST_PAGE_NR")
+  for _page in $(seq 2 "$_last_page_nr")
   do
-    RESPONSE=$(gh api --include -H "Accept: application/vnd.github+json" \
-      "repos/$OWNER/$REPO/pulls?per_page=100&page=$PAGE&state=open&direction=asc" --cache 1h)
-    PR_NUMBERS="$(jq '.[] | select((.draft == false)) | .number' <<< \
-      "$(tail --lines=1 <<< "$RESPONSE")")$(printf "\n%s" "$PR_NUMBERS")"
+    _response=$(gh api --include -H "Accept: application/vnd.github+json" \
+      "repos/$_owner/$_repo/pulls?per_page=100&page=$_page&state=open&direction=asc" --cache 1h)
+    _pr_numbers="$(jq '.[] | select((.draft == false)) | .number' <<< \
+      "$(tail --lines=1 <<< "$_response")")$(printf "\n%s" "$_pr_numbers")"
   done
 fi
 
-echo "Found $(wc -l <<< "$PR_NUMBERS") open PRs"
+echo "Found $(wc -l <<< "$_pr_numbers") open PRs..."
 
-echo "$PR_NUMBERS" |
+_total_prs_checked=0
+_conflicting_prs=()
+_unmergeable_with_master_prs=()
+_check_fail_prs=()
+
+echo "$_pr_numbers" |
 xargs -I{} gh api -H "Accept: application/vnd.github+json" \
-  "repos/$OWNER/$REPO/pulls/{}" --cache 1h \
+  "repos/$_owner/$_repo/pulls/{}" --cache 1h \
    --jq '[.number, .head.sha, .mergeable] | join(" ")' |
 while read -r data
 do
@@ -40,30 +39,30 @@ do
 
   if test "${arr[2]}" = "false"
   then 
-    unmergeable_with_master_prs+=("#${arr[0]}")
+    _unmergeable_with_master_prs+=("#${arr[0]}")
   else
-    if test "$(gh api -H "Accept: application/vnd.github+json" "repos/$OWNER/$REPO/commits/${arr[1]}/check-runs" --cache 1h \
+    if test "$(gh api -H "Accept: application/vnd.github+json" "repos/$_owner/$_repo/commits/${arr[1]}/check-runs" --cache 1h \
       --jq '.check_runs | [.[] | .conclusion] | all(. == "success")')" = "true"
     then
       git fetch --quiet origin "pull/${arr[0]}/head:TEMP_BRANCH_NAME" 1>/dev/null
       if test "$(git merge --no-commit --no-ff "TEMP_BRANCH_NAME" 2>&1 | rg "CONFLICT")"
       then   
-        conflicting_prs+=("#${arr[0]}")
+        _conflicting_prs+=("#${arr[0]}")
       fi
       git merge --abort
       git branch --quiet --delete --force  "TEMP_BRANCH_NAME"
       git prune
     else
-      check_fail_prs+=("#${arr[0]}")
+      _check_fail_prs+=("#${arr[0]}")
     fi
   fi
   
-  total_prs_checked=$((total_prs_checked + 1))
+  _total_prs_checked=$((_total_prs_checked + 1))
 
   echo "== SUMMARY =="
-  echo "Number of PRs checked $total_prs_checked"
-  echo "Conflicting PRs (${#conflicting_prs[*]}) :" "${conflicting_prs[@]}"
-  echo "Checks faiure PRs (${#check_fail_prs[*]}) :" "${check_fail_prs[@]}"
-  echo "Unmergeable with master PRs (${#unmergeable_with_master_prs[*]}) :" "${unmergeable_with_master_prs[@]}"
+  echo "Number of PRs checked $_total_prs_checked"
+  echo "Conflicting PRs (${#_conflicting_prs[*]}) :" "${_conflicting_prs[@]}"
+  echo "Checks faiure PRs (${#_check_fail_prs[*]}) :" "${_check_fail_prs[@]}"
+  echo "Unmergeable with master PRs (${#_unmergeable_with_master_prs[*]}) :" "${_unmergeable_with_master_prs[@]}"
   echo ""
 done
