@@ -40,7 +40,7 @@ do
 
   if test "${arr[2]}" = "false"
   then 
-    unmergeable_with_master_prs+=("${arr[0]}")
+    unmergeable_with_master_prs+=("#${arr[0]}")
   else
     if test "$(gh api -H "Accept: application/vnd.github+json" "repos/$OWNER/$REPO/commits/${arr[1]}/check-runs" --cache 1h \
       --jq '.check_runs | [.[] | .conclusion] | all(. == "success")')" = "true"
@@ -48,13 +48,13 @@ do
       git fetch --quiet origin "pull/${arr[0]}/head:TEMP_BRANCH_NAME" 1>/dev/null
       if test "$(git merge --no-commit --no-ff "TEMP_BRANCH_NAME" 2>&1 | rg "CONFLICT")"
       then   
-        conflicting_prs+=("${arr[0]}")
+        conflicting_prs+=("#${arr[0]}")
       fi
       git merge --abort
       git branch --quiet --delete --force  "TEMP_BRANCH_NAME"
       git prune
     else
-      check_fail_prs+=("${arr[0]}")
+      check_fail_prs+=("#${arr[0]}")
     fi
   fi
   
