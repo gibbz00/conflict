@@ -4,7 +4,7 @@ This script will:
 
 1) Get all the open PRs from the specified repo.
 2) Check which are mergeable with origin master.
-3) Check which pass CI checks.
+3) Check which pass all CI checks.
 4) Check which are mergeable with local branch.
 5) Summarize results.
 
@@ -26,15 +26,12 @@ Checking if 'unify-config' conflicts with PR #5645...
 ```
 
 ## Useage 
-  
-To try it out, run:
+
+Special dependencies: `gh` with cached auth token, `jq` and `rg`. 
+
+Clone this repo, make sure the dependencies are set up (Arch users can use the AUR package `git-conflict-git` for this), and the run:
+
 ```bash
-  # in repo directory
-  sh git-conflict.sh <repo-owner> <repo-name>
+  # in repo directory that is to be checked
+  git-conflict.sh <repo-owner> <repo-name>
 ```
-
-Special dependencies:
-
-- `gh` With cached auth token.
-- `jq`
-- `rg`
