@@ -5,7 +5,7 @@ _repo="$2"
 echo "Retrieving PRs from ${_owner}/${_repo}..."
 
 _response=$(gh api --include -H "Accept: application/vnd.github+json" \
-  "repos/$_owner/$_repo/pulls?per_page=100&state=open&direction=asc" --cache 1h)
+  "repos/$_owner/$_repo/pulls?per_page=100&state=open" --cache 1h)
 _last_page_nr=$(rg --only-matching --pcre2 '\d*(?=>; rel="last")' <<< "$_response")
 _pr_numbers="$(jq '.[] | select((.draft == false)) | .number' <<< \
   "$(tail --lines=1 <<< "$_response")")"
@@ -39,13 +39,19 @@ do
   # [pr_number, head_sha, mergeable_with_master]
   read -a arr <<< "$data"
 
-  echo "== SUMMARY =="
-  echo "Number of PRs checked $_total_prs_checked/$_pr_count"
-  echo "Conflicting PRs (${#_conflicting_prs[*]}) :" "${_conflicting_prs[@]}"
-  echo "Checks faiure PRs (${#_check_fail_prs[*]}) :" "${_check_fail_prs[@]}"
-  echo "Unmergeable with master PRs (${#_unmergeable_with_master_prs[*]}) :" "${_unmergeable_with_master_prs[@]}"
-  echo ""
-  echo "Checking whether $_local_branch conflicts with PR #${arr[0]}..."
+  echo "== SUMMARY ($_total_prs_checked/$_pr_count) ==
+
+Conflicting PRs (${#_conflicting_prs[*]}): 
+${_conflicting_prs[@]}
+
+Skipped because of failing CI checks (${#_check_fail_prs[*]}):
+${_check_fail_prs[@]}
+
+Skipped for being unmergeable with master (${#_unmergeable_with_master_prs[*]}): 
+${_unmergeable_with_master_prs[@]}
+
+Checking if '$_local_branch' conflicts with PR #${arr[0]}...
+"
 
   if test "${arr[2]}" = "false"
   then 
