@@ -1,0 +1,3 @@
+[submodule "git-conflict-git"]
+	path = git-conflict-git
+	url = https://aur.archlinux.org/git-conflict-git.git
