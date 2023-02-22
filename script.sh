@@ -64,9 +64,8 @@ do
 
   echo "== SUMMARY =="
   echo "Number of PRs checked $total_prs_checked"
-  echo "Nuber of PRs with conflicts ${#conflicting_prs[*]}"
-  echo "Conflicting PRs: " "${conflicting_prs[@]}"
-  echo "Checks faiure PRs: " "${check_fail_prs[@]}"
-  echo "Unmergeable with master PRs: " "${unmergeable_with_master_prs[@]}"
+  echo "Conflicting PRs (${#conflicting_prs[*]}) :" "${conflicting_prs[@]}"
+  echo "Checks faiure PRs (${#check_fail_prs[*]}) :" "${check_fail_prs[@]}"
+  echo "Unmergeable with master PRs (${#unmergeable_with_master_prs[*]}) :" "${unmergeable_with_master_prs[@]}"
   echo ""
 done
