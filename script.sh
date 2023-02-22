@@ -10,7 +10,7 @@ echo "Retrieving forks from ${OWNER}/${REPO}..."
 
 PR_NUMBERS=""
 RESPONSE=$(gh api --include -H "Accept: application/vnd.github+json" \
-  "repos/$OWNER/$REPO/pulls?per_page=100&state=open" --cache 1h)
+  "repos/$OWNER/$REPO/pulls?per_page=100&state=open&direction=asc" --cache 1h)
 PR_NUMBERS="$(jq '.[] | select((.draft == false)) | .number' <<< \
   "$(tail --lines=1 <<< "$RESPONSE")")$(printf "\n%s" "$PR_NUMBERS")"
 LAST_PAGE_NR=$(rg --only-matching --pcre2 '\d*(?=>; rel="last")' <<< "$RESPONSE")
@@ -20,7 +20,7 @@ then
   for PAGE in $(seq 2 "$LAST_PAGE_NR")
   do
     RESPONSE=$(gh api --include -H "Accept: application/vnd.github+json" \
-      "repos/$OWNER/$REPO/pulls?per_page=100&page=$PAGE&state=open" --cache 1h)
+      "repos/$OWNER/$REPO/pulls?per_page=100&page=$PAGE&state=open&direction=asc" --cache 1h)
     PR_NUMBERS="$(jq '.[] | select((.draft == false)) | .number' <<< \
       "$(tail --lines=1 <<< "$RESPONSE")")$(printf "\n%s" "$PR_NUMBERS")"
   done
