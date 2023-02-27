@@ -10,20 +10,7 @@ This script will:
 
 ### Example output:
 
-```
-=== SUMMARY for helix-editor/helix, (28/278) PRs checked ===
-
-Conflicting PRs (14): 
-#5390 #5411 #5435 #5436 #5472 #5491 #5492 #5523 #5531 #5535 #5577 #5581 #5608 #5621
-
-Skipped because of failing CI checks (2):
-#5635 #5636
-
-Skipped for not being mergeable with origin HEAD (1): 
-#5534
-
-Checking if 'unify-config' conflicts with PR #5645...
-```
+[![asciicast](https://asciinema.org/a/561863.svg)](https://asciinema.org/a/561863?t=28)
 
 ## Useage 
 
