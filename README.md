@@ -8,9 +8,9 @@ This script will:
 4) Check which are mergeable with local branch.
 5) Summarize results.
 
-### Example output:
+### Example:
 
-[![asciicast](https://asciinema.org/a/561863.svg)](https://asciinema.org/a/561863?t=28)
+[![asciicast](https://asciinema.org/a/561863.svg)](https://asciinema.org/a/561863)
 
 ## Useage 
 
